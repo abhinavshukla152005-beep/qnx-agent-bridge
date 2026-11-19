@@ -76,6 +76,12 @@ python tests/demo_client.py --mock
 
 ## Booting the QNX target
 
+`qemu/install-sdp.sh` installs QNX Software Center and the 8.0 baseline
+headlessly on Windows. It prompts for the myQNX password (or reads
+`MYQNX_USER` / `MYQNX_PASSWORD`), then lists the packages that match `qnx800`
+and `qemu`; re-run with `--install` to add the baseline and the Quick Start
+image.
+
 The QNX Everywhere Quick Start Target Image ships as the
 `com.qnx.qnx800.quickstart.qemu` package in QNX Software Center. Its own launch
 path assumes a Linux host (KVM, bridged networking, `/dev/urandom`), so
