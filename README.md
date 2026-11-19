@@ -74,6 +74,30 @@ Demo client — drives the server like an agent and prints a readable summary:
 python tests/demo_client.py --mock
 ```
 
+```
+target      QNX qemu-target 8.0.0 2026/04/11-12:00:00EDT x86pc x86_64
+processes   5
+
+process table
+      pid  threads  prio  policy  state      name
+        1        1     0  FIFO    READY      procnto-smp-instr
+     8194        3    10  FIFO    RECEIVE    slogger2
+    12290        1    10  FIFO    RECEIVE    devc-pty
+    16387        2    21  FIFO    RECEIVE    io-pkt-v6-hc
+    24580        4    16  RR      RUNNING    qnx-agent-demo
+
+qnx-agent-demo (pid 24580)
+  argv      qnx-agent-demo --watch /sensors
+  thread 1: RECEIVE blocked on MsgReceive prio 16 RR
+  thread 2: READY prio 16 RR
+  thread 3: NANOSLEEP blocked on nanosleep prio 10 FIFO
+  thread 4: RUNNING prio 16 RR
+
+system log (2 at warning or worse)
+  Jan 12 10:41:12  24580  WARNING agent-demo: thread 3 blocked on MsgReceive
+  Jan 12 10:41:15  24580  ERROR  agent-demo: watchdog deadline missed
+```
+
 ## Booting the QNX target
 
 `qemu/install-sdp.sh` installs QNX Software Center and the 8.0 baseline
