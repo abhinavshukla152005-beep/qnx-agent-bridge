@@ -1,21 +1,28 @@
 #!/usr/bin/env bash
-# Install the QNX Software Center and QNX SDP 8.0 (plus the QEMU quick start
-# image) on Windows, without the GUI.
+# Install QNX Software Center, the QNX SDP 8.0 baseline and the QEMU quick
+# start image on a Windows host, from Git Bash, without the GUI.
 #
-# Steps mirror "Unattended installation on Windows" in the QNX Software Center
-# documentation. Credentials are read from MYQNX_USER / MYQNX_PASSWORD if set,
-# otherwise prompted for and never written to disk.
+# Credentials come from MYQNX_USER / MYQNX_PASSWORD if set, otherwise they are
+# prompted for and never written to disk.
 #
 # Usage:
-#   bash qemu/install-sdp.sh            # prompt, then check what is available
-#   bash qemu/install-sdp.sh --install  # also install SDP + QEMU image
+#   bash qemu/install-sdp.sh             # install QSC, then list matching packages
+#   bash qemu/install-sdp.sh --install   # also install the 8.0 baseline + QEMU image
 
 set -euo pipefail
 
 QNX_SETUP_URL="${QNX_SETUP_URL:-https://www.qnx.com/download/download/79443/qnx-setup-2.0.4-202501021438-win.exe}"
-INSTALL_DIR="${QNX_INSTALL_DIR:-/c/QNX}"
-COOKIES="$HOME/.qnx/myqnxcookies.auth"
+INSTALL_ROOT="${QNX_INSTALL_ROOT:-/c/QNX}"
+QSC_DIR="$INSTALL_ROOT/QNX Software Center"
+QSC="$QSC_DIR/qnxsoftwarecenter_clt.bat"
+# QSC rejects paths containing spaces and its default workspace lives under
+# C:\Users\<name>, so the workspace and the install both sit at the drive root.
+QSC_WS='C:\qnxws'
+SDP_DIR='C:\qnx800'
+BASELINE="${QNX_BASELINE:-com.qnx.qnx800}"
+QEMU_PKG="${QNX_QEMU_PKG:-com.qnx.qnx800.quickstart.qemu}"
 WORK="${TMPDIR:-/tmp}/qnx-setup"
+COOKIES="$HOME/.qnx/myqnxcookies.auth"
 
 if [[ -z "${MYQNX_USER:-}" ]]; then
   read -r -p "myQNX email: " MYQNX_USER
@@ -25,65 +32,76 @@ if [[ -z "${MYQNX_PASSWORD:-}" ]]; then
   echo
 fi
 
+qsc() {
+  "$QSC" -data "$QSC_WS" -myqnx.user "$MYQNX_USER" -myqnx.password "$MYQNX_PASSWORD" "$@"
+}
+
 mkdir -p "$HOME/.qnx" "$WORK"
 
-echo "== logging in as $MYQNX_USER"
-curl -sS -X POST https://www.qnx.com/account/login.html \
-  --form "userlogin=$MYQNX_USER" \
-  --form "password=$MYQNX_PASSWORD" \
-  --cookie-jar "$COOKIES" \
-  -o "$WORK/login.html"
-
-if ! grep -qi "logout" "$WORK/login.html"; then
-  echo "login did not return a session; check the credentials or open this by hand:" >&2
-  echo "  $WORK/login.html" >&2
-  exit 1
-fi
-
-SETUP="$WORK/qnx-setup.exe"
-if [[ ! -s "$SETUP" ]]; then
-  echo "== downloading the QNX Software Center installer"
-  curl -sS -L --cookie "$COOKIES" -o "$SETUP" "$QNX_SETUP_URL"
-fi
-ls -l "$SETUP"
-
-QSC="$INSTALL_DIR/qnxsoftwarecenter/qnxsoftwarecenter_clt.bat"
 if [[ ! -f "$QSC" ]]; then
-  echo "== installing the QNX Software Center into $INSTALL_DIR"
-  "$SETUP" /CurrentUser /S /D="C:\\QNX"
+  SETUP="$WORK/qnx-setup.exe"
+  if [[ ! -s "$SETUP" ]]; then
+    echo "== logging in as $MYQNX_USER"
+    curl -sS -X POST https://www.qnx.com/account/login.html \
+      --form "userlogin=$MYQNX_USER" \
+      --form "password=$MYQNX_PASSWORD" \
+      --cookie-jar "$COOKIES" \
+      -o "$WORK/login.html"
+    if ! grep -qi "logout" "$WORK/login.html"; then
+      echo "login did not return a session; check the credentials or open this by hand:" >&2
+      echo "  $WORK/login.html" >&2
+      exit 1
+    fi
+
+    echo "== downloading the QNX Software Center installer"
+    curl -sS -L --cookie "$COOKIES" -o "$SETUP" "$QNX_SETUP_URL"
+  fi
+  ls -l "$SETUP"
+
+  echo "== installing the QNX Software Center into C:\\QNX"
+  # Running the installer straight from this shell fails with "Device or
+  # resource busy" while the download is still open, so let a second shell wait.
+  (cd "$WORK" && cmd //c "start /wait qnx-setup.exe /CurrentUser /S /D=C:\\QNX")
 fi
 
 if [[ ! -f "$QSC" ]]; then
   echo "QNX Software Center not found at $QSC" >&2
-  ls "$INSTALL_DIR" >&2 || true
   exit 1
 fi
 
-auth=(-myqnx.user="$MYQNX_USER" -myqnx.password="$MYQNX_PASSWORD")
+echo "== $("$QSC" -data "$QSC_WS" -version | head -1)"
 
 echo "== packages mentioning qemu or the 8.0 baseline"
-"$QSC" "${auth[@]}" -list 2>/dev/null | grep -Ei "qnx800|quickstart|qemu" | head -40 || true
+out="$WORK/list.txt"
+qsc -list >"$out" 2>&1 || true
+if grep -q "allrepos" "$out"; then
+  cat >&2 <<'EOF'
+QSC could not reach the package server. It reports an unauthenticated or
+unentitled account that way, so check on https://www.qnx.com/account/dashboard/
+that the QNX Everywhere licence is accepted and an SDP 8.0 key is deployed to
+this myQNX user.
+EOF
+  exit 1
+fi
+grep -Ei "qnx800|quickstart|qemu" "$out" | head -40 || true
 
 if [[ "${1:-}" != "--install" ]]; then
-  cat <<'EOF'
+  cat <<EOF
 
-Re-run with --install to add the SDP and the QEMU image, or run the two
-commands below once the package ids above look right:
+Re-run with --install to add the baseline and the QEMU image, or run:
 
-  qnxsoftwarecenter_clt -destination %USERPROFILE%\qnx800 \
-      -installBaseline com.qnx.qnx800 <auth>
-  qnxsoftwarecenter_clt -destination %USERPROFILE%\qnx800 \
-      -installPackage com.qnx.qnx800.quickstart.qemu <auth>
+  qnxsoftwarecenter_clt -data $QSC_WS -destination $SDP_DIR -installBaseline $BASELINE
+  qnxsoftwarecenter_clt -data $QSC_WS -destination $SDP_DIR -installPackage $QEMU_PKG
 EOF
   exit 0
 fi
 
-SDP_DIR="${QNX_SDP_DIR:-$HOME/qnx800}"
-echo "== installing SDP 8.0 into $SDP_DIR"
-"$QSC" "${auth[@]}" -destination "$SDP_DIR" -installBaseline com.qnx.qnx800
+echo "== installing the 8.0 baseline into $SDP_DIR"
+qsc -destination "$SDP_DIR" -installBaseline "$BASELINE"
 
 echo "== installing the QEMU quick start image"
-"$QSC" "${auth[@]}" -destination "$SDP_DIR" -installPackage com.qnx.qnx800.quickstart.qemu
+qsc -destination "$SDP_DIR" -installPackage "$QEMU_PKG"
 
 echo
-echo "Done. Images should be under $SDP_DIR/images/qemu/qemu/output"
+echo "Done. Next:"
+echo "  qemu/run-qnx.sh $SDP_DIR/images/qemu/qemu"
