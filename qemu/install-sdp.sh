@@ -73,7 +73,7 @@ commands below once the package ids above look right:
   qnxsoftwarecenter_clt -destination %USERPROFILE%\qnx800 \
       -installBaseline com.qnx.qnx800 <auth>
   qnxsoftwarecenter_clt -destination %USERPROFILE%\qnx800 \
-      -i com.qnx.qnx800.quickstart.qemu <auth>
+      -installPackage com.qnx.qnx800.quickstart.qemu <auth>
 EOF
   exit 0
 fi
@@ -83,7 +83,7 @@ echo "== installing SDP 8.0 into $SDP_DIR"
 "$QSC" "${auth[@]}" -destination "$SDP_DIR" -installBaseline com.qnx.qnx800
 
 echo "== installing the QEMU quick start image"
-"$QSC" "${auth[@]}" -destination "$SDP_DIR" -i com.qnx.qnx800.quickstart.qemu
+"$QSC" "${auth[@]}" -destination "$SDP_DIR" -installPackage com.qnx.qnx800.quickstart.qemu
 
 echo
 echo "Done. Images should be under $SDP_DIR/images/qemu/qemu/output"
