@@ -106,6 +106,13 @@ headlessly on Windows. It prompts for the myQNX password (or reads
 and `qemu`; re-run with `--install` to add the baseline and the Quick Start
 image.
 
+The account needs the QNX Everywhere licence accepted and an SDP 8.0 key
+deployed to it before the toolchain is visible. Until then the CLI reports
+`Cannot read the array length because "allrepos" is null`, which the script
+turns into a pointer back at the License Manager. Its workspace and install
+directories default to `C:\qnxws` and `C:\qnx800` because the CLI rejects
+paths containing spaces, and `C:\Users\<name>` has one.
+
 The QNX Everywhere Quick Start Target Image ships as the
 `com.qnx.qnx800.quickstart.qemu` package in QNX Software Center. Its own launch
 path assumes a Linux host (KVM, bridged networking, `/dev/urandom`), so
