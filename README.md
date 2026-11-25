@@ -98,6 +98,26 @@ system log (2 at warning or worse)
   Jan 12 10:41:15  24580  ERROR  agent-demo: watchdog deadline missed
 ```
 
+## Codelab
+
+[`CODELAB.md`](CODELAB.md) is a 45–60 minute tutorial that takes you from
+`git clone` to a live QNX 8.0 target:
+
+0. run the smoke test,
+1. speak MCP by hand,
+2. wire the server into Claude Desktop / Cursor / VS Code,
+3. read `pidin`'s priority-and-policy field correctly,
+4. boot QNX in QEMU and switch the bridge from mock to the real console,
+5. add a fifth tool and the test that covers it.
+
+Modules 0–2 and 5 need **no QNX licence and no target hardware** — the mock
+target is enough. The codelab's claims are checked by the same tools it asks
+you to run:
+
+```sh
+python tools/codelab_check.py
+```
+
 ## Booting the QNX target
 
 `qemu/install-sdp.sh` installs QNX Software Center and the 8.0 baseline
@@ -135,6 +155,10 @@ delimited without a prompt parser.
 ## Status
 
 The MCP layer and the QNX command mapping are implemented and covered by the
-smoke test against a mock target. Wiring to a live QNX 8.0 instance needs the
-QNX SDP 8.0 download from QNX Everywhere (free, non-commercial, requires a
-myQNX account) and the QEMU image package.
+smoke test against a mock target. The codelab walks through both the mock path
+and the live path, and `python tools/codelab_check.py` verifies every command
+the codelab asks a reader to run.
+
+Wiring to a live QNX 8.0 instance needs the QNX SDP 8.0 download from QNX
+Everywhere (free, non-commercial, requires a myQNX account) and the QEMU image
+package.
