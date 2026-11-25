@@ -154,10 +154,16 @@ delimited without a prompt parser.
 
 ## Status
 
-The MCP layer and the QNX command mapping are implemented and covered by the
-smoke test against a mock target. The codelab walks through both the mock path
-and the live path, and `python tools/codelab_check.py` verifies every command
-the codelab asks a reader to run.
+Every tool works end to end today. `tests/smoke.py` drives the full JSON-RPC
+loop over stdio twice — once against a mock target and once against a scripted
+QNX console (`tests/fake_qnx_serial.py`) — so the serial transport is
+exercised, not just written. Pointing the same server at a live QNX 8.0
+instance needs the free QNX Everywhere SDP 8.0 download and the
+`com.qnx.qnx800.quickstart.qemu` image; the only change on the host is the
+`--mock` to `--serial` switch, which Module 4 of the codelab walks through.
+
+`python tools/codelab_check.py` re-runs every command the codelab asks a reader
+to run and compares the output.
 
 Wiring to a live QNX 8.0 instance needs the QNX SDP 8.0 download from QNX
 Everywhere (free, non-commercial, requires a myQNX account) and the QEMU image
